@@ -32,9 +32,28 @@ export function ForgotPasswordForm({
 
     try {
       // The url which will be included in the email. This URL needs to be configured in your redirect URLs in the Supabase dashboard at https://supabase.com/dashboard/project/_/auth/url-configuration
+      const browserOrigin = window.location.origin;
+      const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+      const isLocalOrigin = (value: string) => {
+        try {
+          const hostname = new URL(value).hostname;
+          return (
+            hostname === "localhost" ||
+            hostname === "127.0.0.1" ||
+            hostname === "[::1]"
+          );
+        } catch {
+          return false;
+        }
+      };
+
+      // A local value can remain in a deployment's environment settings. In
+      // production, prefer the actual public origin over that stale value.
       const appUrl =
-        process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
-        window.location.origin;
+        configuredSiteUrl &&
+        !(isLocalOrigin(configuredSiteUrl) && !isLocalOrigin(browserOrigin))
+          ? configuredSiteUrl.replace(/\/$/, "")
+          : browserOrigin;
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${appUrl}/auth/update-password`,
       });

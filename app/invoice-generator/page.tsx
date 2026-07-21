@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import InvoiceGeneratorForm from "@/components/invoice-generator-form"
 import { ThemeToggle } from "@/components/theme-toggle"
 
@@ -8,7 +9,9 @@ export default function InvoiceGenerator() {
           <h1 className="text-2xl sm:text-3xl font-bold">Invoice Generator</h1>
           <ThemeToggle />
         </div>
-        <InvoiceGeneratorForm />
+        <Suspense fallback={null}>
+          <InvoiceGeneratorForm />
+        </Suspense>
       </main>
   );
 };

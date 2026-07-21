@@ -3,8 +3,8 @@ import { formatCurrency, formatDate } from "@/lib/utils"
 
 interface InvoicePreviewProps {
   invoiceData: InvoiceData
-  calculateItemDiscount: (item: (typeof invoiceData.items)[0]) => number
-  calculateItemTotal: (item: (typeof invoiceData.items)[0]) => number
+  calculateItemDiscount: (item: InvoiceData["items"][number]) => number
+  calculateItemTotal: (item: InvoiceData["items"][number]) => number
   calculateTotalItemDiscounts: () => number
   calculateSubtotal: () => number
   calculateDiscount: () => number

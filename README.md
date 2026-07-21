@@ -1,6 +1,6 @@
 # Invoice Tracker
 
-Invoice Tracker is a full-stack web application built to showcase my skills in modern web development. It combines a robust backend with a responsive frontend to provide a seamless experience for tracking invoices. The project demonstrates best practices in both client-side and server-side development, including authentication, data persistence, and secure server actions.
+Invoice Tracker is a full-stack web application for managing invoices with a robust backend and responsive frontend. It delivers a seamless experience for tracking invoices while bringing together authentication, data persistence, and secure server actions in a maintainable modern web architecture.
 
 > **Note:** No custom backend code is required for this project. All server-side logic is implemented using [Next.js Server Actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions) and Supabase. This approach enables secure, scalable, and maintainable backend functionality directly within the Next.js codebase.
 
@@ -34,7 +34,7 @@ Invoice Tracker is a full-stack web application built to showcase my skills in m
 
 To explore and evaluate Invoice Tracker:
 
-1. **Live Demo:** Visit the deployed application at [https://your-demo-url.com](https://your-demo-url.com) (replace with actual URL if available).
+1. **Live Demo:** Visit the deployed application at https://invoice-tracker-jo.vercel.app.
 2. **Source Code:** Browse the codebase in this repository to review architecture, design, and implementation.
 3. **Feature Walkthrough:** 
    - Log in or sign up to access the dashboard.

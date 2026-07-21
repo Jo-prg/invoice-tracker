@@ -20,6 +20,53 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { isGuestMode } from "@/lib/auth/guestMode"
 import { getGuestInvoice, saveGuestInvoice, getGuestCompany, setGuestCompany } from "@/lib/auth/guestStorage"
 
+function normalizeColorsForHtml2Canvas(documentClone: Document, element: HTMLElement) {
+  // html2canvas reads the cloned document and body backgrounds before it
+  // decides whether to use foreignObjectRendering. Keep those values out of
+  // the legacy color parser as well.
+  documentClone.documentElement.style.backgroundColor = "rgb(255, 255, 255)"
+  documentClone.body.style.backgroundColor = "rgb(255, 255, 255)"
+  element.setAttribute("data-invoice-pdf-export", "true")
+
+  Array.from(element.querySelectorAll<HTMLElement>("*")).forEach((cloneElement) => {
+    if (cloneElement.classList.contains("text-black/70")) {
+      cloneElement.setAttribute("data-invoice-pdf-muted", "70")
+    } else if (cloneElement.classList.contains("text-black/50")) {
+      cloneElement.setAttribute("data-invoice-pdf-muted", "50")
+    }
+  })
+
+  const style = documentClone.createElement("style")
+  style.textContent = `
+    [data-invoice-pdf-export] {
+      color: rgb(0, 0, 0) !important;
+      background-color: rgb(255, 255, 255) !important;
+      border-color: rgb(229, 231, 235) !important;
+      outline-color: rgb(0, 0, 0) !important;
+      text-decoration-color: rgb(0, 0, 0) !important;
+      -webkit-text-stroke-color: rgb(0, 0, 0) !important;
+    }
+
+    [data-invoice-pdf-export] *,
+    [data-invoice-pdf-export] *::before,
+    [data-invoice-pdf-export] *::after {
+      color: rgb(0, 0, 0) !important;
+      background-color: transparent !important;
+      border-top-color: rgb(229, 231, 235) !important;
+      border-right-color: rgb(229, 231, 235) !important;
+      border-bottom-color: rgb(229, 231, 235) !important;
+      border-left-color: rgb(229, 231, 235) !important;
+      outline-color: rgb(0, 0, 0) !important;
+      text-decoration-color: rgb(0, 0, 0) !important;
+      -webkit-text-stroke-color: rgb(0, 0, 0) !important;
+    }
+
+    [data-invoice-pdf-muted="70"] { color: rgb(77, 77, 77) !important; }
+    [data-invoice-pdf-muted="50"] { color: rgb(128, 128, 128) !important; }
+  `
+  documentClone.head.appendChild(style)
+}
+
 export default function InvoiceGeneratorForm() {
   const [activeTab, setActiveTab] = useState("edit")
   const invoiceRef = useRef<HTMLDivElement>(null)
@@ -297,6 +344,9 @@ export default function InvoiceGeneratorForm() {
         scale: 2,
         useCORS: true,
         logging: false,
+        onclone: (documentClone, clonedElement) => {
+          normalizeColorsForHtml2Canvas(documentClone, clonedElement)
+        },
       })
 
       const imgData = canvas.toDataURL("image/png")

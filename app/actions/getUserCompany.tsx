@@ -41,47 +41,38 @@ export async function getUserCompany() {
   
   const supabase = await createClient()
 
-  const { data: companyData, error } = await supabase
-    .from('user_company')
+  const { data: customers, error } = await supabase
+    .from('customers')
     .select(`
       company_name,
-      company_logo,
+      logo_url,
       company_details,
-      from_name,
-      from_email,
-      from_address
+      id
     `)
-    .single()
+    .limit(1)
 
   if (error) {
-    // If no company data exists yet, return empty fields
-    if (error.code === 'PGRST116') {
-      return {
-        success: true,
-        data: {
-          companyName: "",
-          companyLogo: "",
-          companyDetails: "",
-          fromName: "",
-          fromEmail: "",
-          fromAddress: "",
-        }
-      }
-    }
     return { success: false, message: error.message }
   }
 
-  const camelCaseCompany = toCamelCase(companyData)
+  const { data: invoices } = await supabase
+    .from('invoices')
+    .select('from_name, from_email, from_address')
+    .order('date', { ascending: false })
+    .limit(1)
+
+  const company = customers?.[0] ? toCamelCase(customers[0]) : {}
+  const invoice = invoices?.[0] ? toCamelCase(invoices[0]) : {}
 
   return {
     success: true,
     data: {
-      companyName: camelCaseCompany.companyName || "",
-      companyLogo: camelCaseCompany.companyLogo || "",
-      companyDetails: camelCaseCompany.companyDetails || "",
-      fromName: camelCaseCompany.fromName || "",
-      fromEmail: camelCaseCompany.fromEmail || "",
-      fromAddress: camelCaseCompany.fromAddress || "",
+      companyName: company.companyName || "",
+      companyLogo: company.logoUrl || "",
+      companyDetails: company.companyDetails || "",
+      fromName: invoice.fromName || "",
+      fromEmail: invoice.fromEmail || "",
+      fromAddress: invoice.fromAddress || "",
     }
   }
 }

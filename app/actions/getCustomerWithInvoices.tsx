@@ -33,7 +33,8 @@ export async function getCustomerWithInvoices(customerId: string) {
   // Fetch customer details
   const { data: customer, error: customerError } = await supabase
     .from('customers')
-    .select('*')
+    // Alias the deployed schema's legacy names to the UI's customer shape.
+    .select('id, to_name:contact_name, to_email:email, to_address:address')
     .eq('id', customerId)
     .single()
 

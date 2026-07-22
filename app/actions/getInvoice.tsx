@@ -2,7 +2,6 @@
 
 import { createClient } from "@/lib/supabase/server"
 import type { InvoiceData } from "@/types/invoice"
-import { getUserCompany } from "./getUserCompany"
 import { cookies } from "next/headers"
 
 export async function getInvoice(invoiceId: string) {
@@ -25,6 +24,9 @@ export async function getInvoice(invoiceId: string) {
       invoice_number,
       date,
       due_date,
+      from_name,
+      from_email,
+      from_address,
       notes,
       tax_rate,
       currency,
@@ -36,9 +38,12 @@ export async function getInvoice(invoiceId: string) {
       customer_id,
       customers (
         id,
-        to_name,
-        to_email,
-        to_address
+        company_name,
+        logo_url,
+        company_details,
+        to_name:contact_name,
+        to_email:email,
+        to_address:address
       ),
       invoice_line_items (
         id,
@@ -62,22 +67,6 @@ export async function getInvoice(invoiceId: string) {
     return { success: false, message: "Invoice not found" }
   }
 
-  // Fetch user_company info using the shared action
-  const companyResult = await getUserCompany()
-
-  if (!companyResult.success) {
-    return { success: false, message: companyResult.message || "Failed to fetch company data" }
-  }
-
-  const companyData = companyResult.data || {
-    companyName: "",
-    companyLogo: "",
-    companyDetails: "",
-    fromName: "",
-    fromEmail: "",
-    fromAddress: "",
-  }
-
   const customers = Array.isArray(invoice.customers) ? invoice.customers[0] : invoice.customers;
 
   const invoiceData: InvoiceData = {
@@ -85,12 +74,12 @@ export async function getInvoice(invoiceId: string) {
     invoiceNumber: invoice.invoice_number,
     date: invoice.date,
     dueDate: invoice.due_date,
-    companyName: companyData.companyName || "",
-    companyLogo: companyData.companyLogo || "",
-    companyDetails: companyData.companyDetails || "",
-    fromName: companyData.fromName || "",
-    fromEmail: companyData.fromEmail || "",
-    fromAddress: companyData.fromAddress || "",
+    companyName: customers?.company_name || "",
+    companyLogo: customers?.logo_url || "",
+    companyDetails: customers?.company_details || "",
+    fromName: invoice.from_name || "",
+    fromEmail: invoice.from_email || "",
+    fromAddress: invoice.from_address || "",
     toName: customers?.to_name || "",
     toEmail: customers?.to_email || "",
     toAddress: customers?.to_address || "",

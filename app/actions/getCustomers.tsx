@@ -32,8 +32,9 @@ export async function getCustomers() {
 
   const { data: customers, error } = await supabase
     .from('customers')
-    .select('id, to_name, to_email, to_address')
-    .order('to_name', { ascending: true })
+    // Alias the deployed schema's legacy names to the UI's customer shape.
+    .select('id, to_name:contact_name, to_email:email, to_address:address')
+    .order('contact_name', { ascending: true })
 
   if (error) {
     console.error('Error fetching customers:', error)

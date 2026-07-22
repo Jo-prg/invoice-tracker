@@ -22,20 +22,14 @@ function toSnakeCase(obj: any): any {
 
 function getCustomerData(invoice: InvoiceData): Customers {
   return {
-    toName: invoice.toName,
-    toEmail: invoice.toEmail,
-    toAddress: invoice.toAddress,
-  }
-}
-
-function getCompanyData(invoice: InvoiceData) {
-  return {
-    companyName: invoice.companyName,
-    companyLogo: invoice.companyLogo,
-    companyDetails: invoice.companyDetails,
-    fromName: invoice.fromName,
-    fromEmail: invoice.fromEmail,
-    fromAddress: invoice.fromAddress,
+    // The deployed customers table uses the original customer column names.
+    // Keep the legacy company fields populated because company_name is NOT NULL.
+    companyName: invoice.companyName || "",
+    logoUrl: invoice.companyLogo || "",
+    companyDetails: invoice.companyDetails || "",
+    contactName: invoice.toName || "",
+    email: invoice.toEmail || "",
+    address: invoice.toAddress || "",
   }
 }
 
@@ -48,6 +42,9 @@ function getInvoiceData(invoice: InvoiceData) {
     discountValue,
     dueDate,
     footer,
+    fromAddress,
+    fromEmail,
+    fromName,
     invoiceNumber,
     notes,
     status,
@@ -63,6 +60,9 @@ function getInvoiceData(invoice: InvoiceData) {
     discountValue,
     dueDate,
     footer,
+    fromAddress,
+    fromEmail,
+    fromName,
     invoiceNumber,
     notes,
     status,
@@ -72,6 +72,22 @@ function getInvoiceData(invoice: InvoiceData) {
 
 // Save the invoice to the supabase database
 export async function saveInvoice(invoice: InvoiceData) {
+  try {
+    return await saveInvoiceInternal(invoice)
+  } catch (error: unknown) {
+    console.error('Unexpected error saving invoice:', error)
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unexpected error saving invoice',
+    }
+  }
+}
+
+async function saveInvoiceInternal(invoice: InvoiceData) {
+  if (!invoice || !Array.isArray(invoice.items)) {
+    return { success: false, message: 'Invoice items are missing or invalid' }
+  }
+
   // Check if user is in guest mode
   const cookieStore = await cookies()
   const isGuest = cookieStore.get('guest_mode')?.value === 'true'
@@ -89,31 +105,8 @@ export async function saveInvoice(invoice: InvoiceData) {
   }
   
   const supabase = await createClient()
-  const customerData = toSnakeCase(getCustomerData(invoice));
+  let customerData = toSnakeCase(getCustomerData(invoice));
   const invoiceData = toSnakeCase(getInvoiceData(invoice));  
-  let companyData = toSnakeCase(getCompanyData(invoice));
-  
-  // Handle logo upload if it's a base64 string (new upload)
-  if (companyData.company_logo && companyData.company_logo.startsWith('data:image')) {
-    const uploadResult = await uploadLogo(companyData.company_logo)
-    
-    if (!uploadResult.success) {
-      return { success: false, message: `Logo upload failed: ${uploadResult.message}` }
-    }
-    
-    // Check if there's an existing logo to delete
-    const { data: existingCompany } = await supabase
-      .from('user_company')
-      .select('company_logo')
-      .single();
-    
-    if (existingCompany?.company_logo && !existingCompany.company_logo.startsWith('data:image')) {
-      // Delete old logo (don't fail if deletion fails)
-      await deleteLogo(existingCompany.company_logo)
-    }
-    
-    companyData.company_logo = uploadResult.url
-  }
   
   // Remove 'id' from each item before saving
   const lineItems = toSnakeCase(invoice["items"]).map((item: any) => {
@@ -128,11 +121,26 @@ export async function saveInvoice(invoice: InvoiceData) {
   const { data: existingCustomer, error: customerFetchError } = await supabase
     .from('customers')
     .select()
-    .eq('to_email', customerData.to_email)
+    .eq('email', customerData.email)
     .maybeSingle();
 
   if (customerFetchError) {
     return { success: false, message: customerFetchError.message }
+  }
+
+  // Handle logo upload if it's a base64 string (new upload).
+  if (customerData.logo_url && customerData.logo_url.startsWith('data:image')) {
+    const uploadResult = await uploadLogo(customerData.logo_url)
+
+    if (!uploadResult.success) {
+      return { success: false, message: `Logo upload failed: ${uploadResult.message}` }
+    }
+
+    if (existingCustomer?.logo_url && !existingCustomer.logo_url.startsWith('data:image')) {
+      await deleteLogo(existingCustomer.logo_url)
+    }
+
+    customerData = { ...customerData, logo_url: uploadResult.url }
   }
 
   if (existingCustomer) {
@@ -166,34 +174,6 @@ export async function saveInvoice(invoice: InvoiceData) {
 
   // Attach customer_id to invoiceData
   invoiceData.customer_id = customerId;
-
-  // Save or update company info
-  // Try to find existing company for this user
-  const { data: existingCompany, error: companyFetchError } = await supabase
-    .from('user_company')
-    .select()
-    .single();
-
-  if (existingCompany) {
-    // Update existing company
-    const { error: companyUpdateError } = await supabase
-      .from('user_company')
-      .update(companyData)
-      .eq('id', existingCompany.id); // use primary key instead
-
-    if (companyUpdateError) {
-      return { success: false, message: companyUpdateError.message }
-    }
-  } else {
-    // Insert new company
-    const { error: companyInsertError } = await supabase
-      .from('user_company')
-      .insert(companyData);
-
-    if (companyInsertError) {
-      return { success: false, message: companyInsertError.message }
-    }
-  }
 
   let invoiceResult;
 

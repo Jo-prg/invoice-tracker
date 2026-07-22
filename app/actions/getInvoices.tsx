@@ -1,7 +1,6 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
-import { getUserCompany } from "./getUserCompany"
 import { cookies } from "next/headers"
 
 // Utility to convert snake_case keys to camelCase
@@ -39,6 +38,9 @@ export async function getInvoices() {
       invoice_number,
       date,
       due_date,
+      from_name,
+      from_email,
+      from_address,
       notes,
       tax_rate,
       currency,
@@ -50,9 +52,12 @@ export async function getInvoices() {
       customer_id,
       customers (
         id,
-        to_name,
-        to_email,
-        to_address
+        company_name,
+        logo_url,
+        company_details,
+        to_name:contact_name,
+        to_email:email,
+        to_address:address
       ),
       invoice_line_items (
         id,
@@ -72,29 +77,17 @@ export async function getInvoices() {
     return { success: false, message: error.message, data: [] }
   }
 
-  // Fetch user_company info using the shared action
-  const companyResult = await getUserCompany()
-  const companyData = companyResult.success && companyResult.data ? companyResult.data : {
-    companyName: "",
-    companyLogo: "",
-    companyDetails: "",
-    fromName: "",
-    fromEmail: "",
-    fromAddress: "",
-  }
-
   // Convert snake_case to camelCase
   const camelCaseInvoices = toCamelCase(invoices)
 
-  // Attach company info to each invoice
   const combinedInvoices = camelCaseInvoices.map((invoice: any) => ({
     ...invoice,
-    companyName: companyData.companyName || "",
-    companyLogo: companyData.companyLogo || "",
-    companyDetails: companyData.companyDetails || "",
-    fromName: companyData.fromName || "",
-    fromEmail: companyData.fromEmail || "",
-    fromAddress: companyData.fromAddress || "",
+    companyName: invoice.customers?.companyName || "",
+    companyLogo: invoice.customers?.logoUrl || "",
+    companyDetails: invoice.customers?.companyDetails || "",
+    fromName: invoice.fromName || "",
+    fromEmail: invoice.fromEmail || "",
+    fromAddress: invoice.fromAddress || "",
   }))
 
   return { success: true, data: combinedInvoices }
